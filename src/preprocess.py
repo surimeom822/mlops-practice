@@ -23,7 +23,12 @@ def extract_floor(floor_info: str) -> int:
     Args:
         floor_info (str): 층수 정보
     """
-    # TODO
+    # floor = floor_info.split(sep=" out of")[0]
+    # floor = floor if floor.isnumeric() else 0
+    # return int(floor)
+    split_floor_info = floor_info.split()
+    floor_str = split_floor_info[0]
+    return int(floor_str) if floor_str.isnumeric() else 0
 
 
 def floor_extractor(df: pd.DataFrame, col: str) -> pd.DataFrame:
@@ -42,21 +47,30 @@ def floor_extractor(df: pd.DataFrame, col: str) -> pd.DataFrame:
     return df
 
 
-# TODO: 전처리 파이프라인 작성
 # 1. 방의 크기는 제곱근을 적용함 (FunctionTransformer 사용)
 # 2. 층수는 실제 층수를 추출하되 숫자가 아닌 Basement 등은 0층으로 표기함
 # 3. 범주형 변수(CAT_FEATURES)는 타겟 인코딩 적용 (from category_encoders import TargetEncoder)
 preprocess_pipeline = ColumnTransformer(
     transformers=[
-        # TODO,
+        (
+            "sqrt_transformer",
+            FunctionTransformer(np.sqrt),
+            ["size"],
+        ),
         (
             "floor_extractor",
             FunctionTransformer(floor_extractor, kw_args={"col": "floor"}),
             ["floor"],
         ),
-        # TODO,
+        (
+            "target_encoder",
+            TargetEncoder(),
+            CAT_FEATURES,
+        ),
     ],
-    remainder="passthrough",
-    verbose_feature_names_out=False,
+    remainder="passthrough",  # default="drop" 설정 시 변환되지 않는 변수는 삭제됨
+    verbose_feature_names_out=False,  # 원래 변수를 덮어씌움 (True일 경우 transformer이름+column이름을 가진 변수 생성)
 )
-preprocess_pipeline.set_output(transform="pandas")
+preprocess_pipeline.set_output(
+    transform="pandas"
+)  # transform 지정하지 않을 경우 np.ndarray 반환
